@@ -13,19 +13,26 @@ final class ChatViewModel {
     private let service = OpenClawService.shared
     private var currentRunId: String?
     private var streamingMessageIndex: Int?
+    private var isDemoMode = false
 
     init() {}
 
-    func setup(sessionKey: String) {
+    func setup(sessionKey: String, isDemoMode: Bool = false) {
         self.sessionKey = sessionKey
+        self.isDemoMode = isDemoMode
         loadHistory()
         setupEventListeners()
     }
 
     private func loadHistory() {
-        guard service.isConnected, !sessionKey.isEmpty else {
+        if isDemoMode {
             messages = MockService.shared.sampleMessages
             checkForPendingApprovals()
+            return
+        }
+
+        guard service.isConnected, !sessionKey.isEmpty else {
+            messages = []
             return
         }
 
@@ -58,11 +65,9 @@ final class ChatViewModel {
                         loaded.append(Message(role: msgRole, content: content))
                     }
                 }
-                if !loaded.isEmpty {
-                    self.messages = loaded
-                }
+                self.messages = loaded
             } catch {
-                // Keep whatever messages we have
+                // Keep empty
             }
         }
     }
@@ -150,7 +155,7 @@ final class ChatViewModel {
         isStreaming = true
         streamingMessageIndex = nil
 
-        if service.isConnected {
+        if service.isConnected && !isDemoMode {
             Task {
                 do {
                     let key = sessionKey.isEmpty ? "mobile-\(UUID().uuidString.prefix(8))" : sessionKey
@@ -172,7 +177,7 @@ final class ChatViewModel {
             }
             showApproval = false
 
-            if service.isConnected {
+            if service.isConnected && !isDemoMode {
                 Task {
                     try? await service.resolveApproval(id: msg.id, decision: "approve")
                     if let index = messages.firstIndex(where: { $0.id == msg.id }) {
@@ -180,7 +185,6 @@ final class ChatViewModel {
                     }
                 }
             } else {
-                // Mock
                 Task {
                     try? await Task.sleep(for: .seconds(1.5))
                     if let index = messages.firstIndex(where: { $0.id == msg.id }) {
@@ -203,7 +207,7 @@ final class ChatViewModel {
             showApproval = false
             pendingApproval = nil
 
-            if service.isConnected {
+            if service.isConnected && !isDemoMode {
                 Task {
                     try? await service.resolveApproval(id: msg.id, decision: "reject")
                 }
@@ -213,7 +217,7 @@ final class ChatViewModel {
     }
 
     func abortChat() {
-        if service.isConnected {
+        if service.isConnected && !isDemoMode {
             service.abortChat(sessionKey: sessionKey)
         }
         isStreaming = false
@@ -230,7 +234,7 @@ final class ChatViewModel {
         }
     }
 
-    // Fallback mock streaming
+    // Demo mode only
     private func simulateResponse(to text: String) {
         Task {
             try? await Task.sleep(for: .seconds(0.3))

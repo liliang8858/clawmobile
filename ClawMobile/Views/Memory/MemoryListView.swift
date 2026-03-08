@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MemoryListView: View {
     @State private var viewModel = MemoryViewModel()
+    @Environment(AppState.self) private var appState
     @Environment(L10n.self) private var l10n
     @State private var showingAddMemory = false
     @State private var newContent = ""
@@ -63,6 +64,9 @@ struct MemoryListView: View {
                 Button(l10n.cancel, role: .cancel) { }
             } message: {
                 Text(l10n.enterMemoryItem)
+            }
+            .onAppear {
+                viewModel.loadItems(isDemoMode: appState.isDemoMode)
             }
         }
     }

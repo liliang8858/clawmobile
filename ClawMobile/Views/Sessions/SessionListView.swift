@@ -73,7 +73,7 @@ struct SessionListView: View {
                 }
             }
             .refreshable {
-                viewModel.loadSessions()
+                viewModel.loadSessions(isDemoMode: appState.isDemoMode)
             }
             .alert(l10n.newSession, isPresented: $viewModel.showingNewSession) {
                 TextField(l10n.sessionName, text: $viewModel.newSessionName)
@@ -83,7 +83,7 @@ struct SessionListView: View {
                 Text(l10n.enterSessionName)
             }
             .onAppear {
-                viewModel.loadSessions()
+                viewModel.loadSessions(isDemoMode: appState.isDemoMode)
             }
         }
     }

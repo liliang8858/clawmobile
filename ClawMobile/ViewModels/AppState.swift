@@ -9,6 +9,7 @@ final class AppState {
     var connectionError: String?
     var discoveredAgent: DiscoveredAgent?
     var isScanning: Bool = false
+    var isDemoMode: Bool = false
 
     private let service = OpenClawService.shared
 
@@ -25,12 +26,12 @@ final class AppState {
         guard discoveredAgent != nil else { return }
         isConnecting = true
         connectionError = nil
+        isDemoMode = false
 
         Task {
             do {
                 try await service.connect()
 
-                // Build agent model from discovered info
                 let discovered = self.discoveredAgent!
                 self.connectedAgent = Agent(
                     id: discovered.agentId,
@@ -46,7 +47,6 @@ final class AppState {
                     uptime: 0
                 )
 
-                // Try to get more details
                 if let identity = try? await service.getIdentity() {
                     if let name = identity["name"] as? String, !name.isEmpty {
                         self.connectedAgent?.name = name
@@ -63,15 +63,15 @@ final class AppState {
     }
 
     func connect(token: String) {
-        // If we have a discovered agent, connect to it
         if discoveredAgent != nil {
             connectToDiscovered()
             return
         }
 
-        // Demo mode fallback
+        // Demo mode
         isConnecting = true
         connectionError = nil
+        isDemoMode = true
         Task {
             try? await Task.sleep(for: .seconds(1.5))
             self.connectedAgent = MockService.shared.agent
@@ -84,5 +84,6 @@ final class AppState {
         service.disconnect()
         isConnected = false
         connectedAgent = nil
+        isDemoMode = false
     }
 }

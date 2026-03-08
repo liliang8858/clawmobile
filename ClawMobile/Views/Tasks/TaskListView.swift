@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskListView: View {
     @State private var viewModel = TasksViewModel()
+    @Environment(AppState.self) private var appState
     @Environment(L10n.self) private var l10n
 
     var body: some View {
@@ -56,13 +57,13 @@ struct TaskListView: View {
                 }
             }
             .refreshable {
-                viewModel.loadTasks()
+                viewModel.loadTasks(isDemoMode: appState.isDemoMode)
             }
             .sheet(isPresented: $viewModel.showingCreateTask) {
                 CreateTaskView(viewModel: viewModel)
             }
             .onAppear {
-                viewModel.loadTasks()
+                viewModel.loadTasks(isDemoMode: appState.isDemoMode)
             }
         }
     }

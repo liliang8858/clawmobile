@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     let session: Session
     @State private var viewModel = ChatViewModel()
+    @Environment(AppState.self) private var appState
     @Environment(L10n.self) private var l10n
     @FocusState private var isInputFocused: Bool
 
@@ -81,7 +82,7 @@ struct ChatView: View {
             }
         }
         .onAppear {
-            viewModel.setup(sessionKey: session.id)
+            viewModel.setup(sessionKey: session.id, isDemoMode: appState.isDemoMode)
         }
     }
 }

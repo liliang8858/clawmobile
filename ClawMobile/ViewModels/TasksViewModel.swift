@@ -16,9 +16,9 @@ final class TasksViewModel {
     var scheduledTasks: [AgentTask] { tasks.filter { $0.status == .scheduled } }
     var completedTasks: [AgentTask] { tasks.filter { $0.status == .completed || $0.status == .failed } }
 
-    func loadTasks() {
-        guard service.isConnected else {
-            tasks = MockService.shared.tasks
+    func loadTasks(isDemoMode: Bool = false) {
+        if isDemoMode || !service.isConnected {
+            tasks = isDemoMode ? MockService.shared.tasks : []
             return
         }
         isLoading = true
@@ -70,9 +70,9 @@ final class TasksViewModel {
                         lastRunAt: lastRunAt
                     ))
                 }
-                self.tasks = loaded.isEmpty ? MockService.shared.tasks : loaded
+                self.tasks = loaded
             } catch {
-                self.tasks = MockService.shared.tasks
+                self.tasks = []
             }
             isLoading = false
         }
@@ -87,7 +87,6 @@ final class TasksViewModel {
                     try await service.addCron(label: newTaskName, prompt: newTaskPrompt, schedule: newTaskSchedule)
                     loadTasks()
                 } catch {
-                    // Fallback to local
                     addLocalTask()
                 }
             }

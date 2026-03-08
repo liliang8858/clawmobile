@@ -10,9 +10,13 @@ final class SessionsViewModel {
 
     private let service = OpenClawService.shared
 
-    func loadSessions() {
-        guard service.isConnected else {
+    func loadSessions(isDemoMode: Bool = false) {
+        if isDemoMode {
             sessions = MockService.shared.sessions
+            return
+        }
+        if !service.isConnected {
+            sessions = []
             return
         }
         isLoading = true
@@ -49,9 +53,9 @@ final class SessionsViewModel {
                         isActive: isActive
                     ))
                 }
-                self.sessions = loaded.isEmpty ? MockService.shared.sessions : loaded
+                self.sessions = loaded
             } catch {
-                self.sessions = MockService.shared.sessions
+                self.sessions = []
             }
             isLoading = false
         }
