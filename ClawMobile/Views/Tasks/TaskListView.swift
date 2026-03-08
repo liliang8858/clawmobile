@@ -1,0 +1,54 @@
+import SwiftUI
+
+struct TaskListView: View {
+    @State private var viewModel = TasksViewModel()
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if !viewModel.runningTasks.isEmpty {
+                    Section("Running") {
+                        ForEach(viewModel.runningTasks) { task in
+                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                        }
+                    }
+                }
+
+                if !viewModel.scheduledTasks.isEmpty {
+                    Section("Scheduled") {
+                        ForEach(viewModel.scheduledTasks) { task in
+                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                        }
+                        .onDelete { indexSet in
+                            let scheduled = viewModel.scheduledTasks
+                            for index in indexSet {
+                                viewModel.deleteTask(scheduled[index])
+                            }
+                        }
+                    }
+                }
+
+                if !viewModel.completedTasks.isEmpty {
+                    Section("Completed") {
+                        ForEach(viewModel.completedTasks) { task in
+                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Tasks")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        viewModel.showingCreateTask = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                }
+            }
+            .sheet(isPresented: $viewModel.showingCreateTask) {
+                CreateTaskView(viewModel: viewModel)
+            }
+        }
+    }
+}
