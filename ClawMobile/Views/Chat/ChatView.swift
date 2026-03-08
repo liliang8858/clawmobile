@@ -3,11 +3,11 @@ import SwiftUI
 struct ChatView: View {
     let session: Session
     @State private var viewModel = ChatViewModel()
+    @Environment(L10n.self) private var l10n
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Messages
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -25,7 +25,6 @@ struct ChatView: View {
                 }
             }
 
-            // Approval banner
             if viewModel.showApproval, let pending = viewModel.pendingApproval {
                 ApprovalView(
                     message: pending,
@@ -36,9 +35,8 @@ struct ChatView: View {
 
             Divider()
 
-            // Input bar
             HStack(spacing: 12) {
-                TextField("Message agent...", text: $viewModel.inputText, axis: .vertical)
+                TextField(l10n.messageAgent, text: $viewModel.inputText, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(1...5)
                     .padding(12)
@@ -51,7 +49,7 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
-                        .foregroundStyle(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isStreaming ? .gray : .accentColor)
+                        .foregroundStyle(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isStreaming ? .gray : Color.accentColor)
                 }
                 .disabled(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isStreaming)
             }
@@ -63,10 +61,10 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Clear Chat", systemImage: "trash") {
+                    Button(l10n.clearChat, systemImage: "trash") {
                         viewModel.messages.removeAll()
                     }
-                    Button("Session Info", systemImage: "info.circle") { }
+                    Button(l10n.sessionInfo, systemImage: "info.circle") { }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }

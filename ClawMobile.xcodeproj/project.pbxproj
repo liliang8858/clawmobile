@@ -19,6 +19,7 @@
 		57BD743A45CDF64940004063 /* MemoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36FC57CB896CDA6D34E1380 /* MemoryItem.swift */; };
 		59921B2D206B9BE40795D71F /* MemoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259DECE0DA3F660BF16DF167 /* MemoryViewModel.swift */; };
 		6063463E3F10F4D0C9DB60FE /* MockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D189D4E5CE28F2B11560E8A /* MockService.swift */; };
+		66ECB39A0161F3A9677F2AAF /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4CFE3C030E671F26E2D1FE2 /* L10n.swift */; };
 		6DA53EA888C9C3F287333D3E /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33189BA1DF9608B57A57C730 /* Agent.swift */; };
 		7013315D4C34A24D47A8B0F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF710D734C65A13B038287C0 /* Assets.xcassets */; };
 		7BFCE43D07D067F651E5C506 /* SessionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 628E49C11F5AB60B3704238F /* SessionsViewModel.swift */; };
@@ -52,6 +53,7 @@
 		7472EEB59FC1F22A1911FEF6 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
 		82EBEDDA0009D74D63EE3EBC /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		983160E10F25DD387C86DE7C /* ClawMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClawMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A4CFE3C030E671F26E2D1FE2 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		A6CA0F84A583F6339C761F1C /* CreateTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTaskView.swift; sourceTree = "<group>"; };
 		AF710D734C65A13B038287C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B1530128A16CF3E5FC6C5C63 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 		FC5D378FC4A9A2FD6B55351D /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A4CFE3C030E671F26E2D1FE2 /* L10n.swift */,
 				5D189D4E5CE28F2B11560E8A /* MockService.swift */,
 			);
 			path = Services;
@@ -265,6 +268,7 @@
 				448A9B5A03BAAAEC3C41C74B /* ClawMobileApp.swift in Sources */,
 				44D5EB91EBAEFE4FDEC1DD79 /* ConnectView.swift in Sources */,
 				9A2C967BDFAF3DEDE4A52892 /* CreateTaskView.swift in Sources */,
+				66ECB39A0161F3A9677F2AAF /* L10n.swift in Sources */,
 				A614AA665AF37439EAFE3198 /* MainTabView.swift in Sources */,
 				57BD743A45CDF64940004063 /* MemoryItem.swift in Sources */,
 				A7BBDE0BDCB7B6CE106D4FAB /* MemoryListView.swift in Sources */,

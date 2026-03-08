@@ -2,41 +2,40 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         NavigationStack {
             List {
-                // Agent Status Section
                 if let agent = appState.connectedAgent {
-                    Section("Agent") {
+                    Section(l10n.agentSection) {
                         HStack {
-                            Label("Name", systemImage: "cpu")
+                            Label(l10n.name, systemImage: "cpu")
                             Spacer()
                             Text(agent.name)
                                 .foregroundStyle(.secondary)
                         }
                         HStack {
-                            Label("Model", systemImage: "brain")
+                            Label(l10n.model, systemImage: "brain")
                             Spacer()
                             Text(agent.model)
                                 .foregroundStyle(.secondary)
                         }
                         HStack {
-                            Label("Status", systemImage: "circle.fill")
+                            Label(l10n.status, systemImage: "circle.fill")
                             Spacer()
-                            Text(agent.status.rawValue.capitalized)
+                            Text(l10n.agentStatus(agent.status))
                                 .foregroundStyle(agent.status == .online ? .green : .orange)
                         }
 
                         NavigationLink {
                             AgentStatusView(agent: agent)
                         } label: {
-                            Label("Dashboard", systemImage: "chart.bar.fill")
+                            Label(l10n.dashboard, systemImage: "chart.bar.fill")
                         }
                     }
 
-                    // Tools Section
-                    Section("Tools") {
+                    Section(l10n.tools) {
                         ForEach(agent.tools, id: \.self) { tool in
                             HStack {
                                 Image(systemName: toolIcon(tool))
@@ -51,33 +50,38 @@ struct SettingsView: View {
                     }
                 }
 
-                // App Settings
-                Section("App") {
+                // Language Setting
+                Section(l10n.app) {
+                    Picker(l10n.languageSetting, selection: Bindable(l10n).language) {
+                        ForEach(AppLanguage.allCases, id: \.self) { lang in
+                            Text(lang.displayName).tag(lang)
+                        }
+                    }
+
                     HStack {
-                        Label("Version", systemImage: "info.circle")
+                        Label(l10n.version, systemImage: "info.circle")
                         Spacer()
                         Text("1.0.0 (MVP)")
                             .foregroundStyle(.secondary)
                     }
                     HStack {
-                        Label("Build", systemImage: "hammer")
+                        Label(l10n.build, systemImage: "hammer")
                         Spacer()
                         Text("2024.1")
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                // Disconnect
                 Section {
                     Button(role: .destructive) {
                         appState.disconnect()
                     } label: {
-                        Label("Disconnect Agent", systemImage: "wifi.slash")
+                        Label(l10n.disconnectAgent, systemImage: "wifi.slash")
                             .foregroundStyle(.red)
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(l10n.settings)
         }
     }
 

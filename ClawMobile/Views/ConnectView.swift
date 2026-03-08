@@ -2,13 +2,13 @@ import SwiftUI
 
 struct ConnectView: View {
     @Environment(AppState.self) private var appState
+    @Environment(L10n.self) private var l10n
     @State private var token = ""
     @State private var showTokenInput = false
     @State private var pulseAnimation = false
 
     var body: some View {
         ZStack {
-            // Background gradient
             LinearGradient(
                 colors: [Color.black, Color(red: 0.05, green: 0.05, blue: 0.15)],
                 startPoint: .top,
@@ -19,7 +19,7 @@ struct ConnectView: View {
             VStack(spacing: 40) {
                 Spacer()
 
-                // Logo area
+                // Logo
                 VStack(spacing: 16) {
                     ZStack {
                         Circle()
@@ -40,29 +40,28 @@ struct ConnectView: View {
                             .foregroundStyle(Color.accentColor)
                     }
 
-                    Text("Claw Mobile")
+                    Text(l10n.appName)
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
 
-                    Text("Your AI Agent Control Center")
+                    Text(l10n.appSlogan)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                // Connection options
                 VStack(spacing: 16) {
                     if appState.isConnecting {
                         ProgressView()
                             .scaleEffect(1.2)
                             .tint(.accentColor)
-                        Text("Connecting to Agent...")
+                        Text(l10n.connecting)
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     } else if showTokenInput {
                         VStack(spacing: 12) {
-                            TextField("Agent URL or Token", text: $token)
+                            TextField(l10n.agentURLOrToken, text: $token)
                                 .textFieldStyle(.plain)
                                 .padding()
                                 .background(Color.white.opacity(0.08))
@@ -74,7 +73,7 @@ struct ConnectView: View {
                             Button {
                                 appState.connect(token: token.isEmpty ? "demo" : token)
                             } label: {
-                                Text("Connect")
+                                Text(l10n.connect)
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
@@ -83,7 +82,7 @@ struct ConnectView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
 
-                            Button("Back") {
+                            Button(l10n.back) {
                                 withAnimation { showTokenInput = false }
                             }
                             .foregroundStyle(.secondary)
@@ -91,11 +90,10 @@ struct ConnectView: View {
                         }
                         .padding(.horizontal)
                     } else {
-                        // Scan QR button
                         Button {
                             appState.connect(token: "demo-token")
                         } label: {
-                            Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                            Label(l10n.scanQR, systemImage: "qrcode.viewfinder")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -105,11 +103,10 @@ struct ConnectView: View {
                         }
                         .padding(.horizontal)
 
-                        // Manual connect
                         Button {
                             withAnimation { showTokenInput = true }
                         } label: {
-                            Label("Enter Token Manually", systemImage: "keyboard")
+                            Label(l10n.enterToken, systemImage: "keyboard")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -119,11 +116,10 @@ struct ConnectView: View {
                         }
                         .padding(.horizontal)
 
-                        // Demo mode
                         Button {
                             appState.connect(token: "demo")
                         } label: {
-                            Text("Try Demo Mode")
+                            Text(l10n.tryDemo)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }

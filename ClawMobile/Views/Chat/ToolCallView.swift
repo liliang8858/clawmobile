@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ToolCallView: View {
     let toolCall: Message.ToolCall
+    @Environment(L10n.self) private var l10n
     @State private var isExpanded = false
 
     var statusColor: Color {
@@ -26,7 +27,6 @@ struct ToolCallView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Header
             Button {
                 withAnimation(.spring(duration: 0.3)) {
                     isExpanded.toggle()
@@ -37,7 +37,7 @@ struct ToolCallView: View {
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
 
-                    Text("Tool: \(toolCall.tool)")
+                    Text("\(l10n.tool): \(toolCall.tool)")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(.primary)
@@ -55,7 +55,6 @@ struct ToolCallView: View {
             }
             .buttonStyle(.plain)
 
-            // Command
             Text(toolCall.command)
                 .font(.system(.caption, design: .monospaced))
                 .padding(8)
@@ -63,7 +62,6 @@ struct ToolCallView: View {
                 .background(Color.black.opacity(0.3))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
 
-            // Result (if expanded and available)
             if isExpanded, let result = toolCall.result {
                 Text(result)
                     .font(.system(.caption, design: .monospaced))
@@ -73,12 +71,11 @@ struct ToolCallView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
-            // Approval warning
             if toolCall.status == .awaitingApproval {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                    Text("Requires approval")
+                    Text(l10n.requiresApproval)
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }

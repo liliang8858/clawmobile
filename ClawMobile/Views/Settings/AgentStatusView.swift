@@ -2,18 +2,17 @@ import SwiftUI
 
 struct AgentStatusView: View {
     let agent: Agent
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         List {
-            // Status Overview
-            Section("Overview") {
-                statusRow(icon: "circle.fill", label: "Status", value: agent.status.rawValue.capitalized, color: agent.status == .online ? .green : .orange)
-                statusRow(icon: "clock", label: "Uptime", value: formatUptime(agent.uptime), color: .blue)
-                statusRow(icon: "checklist", label: "Active Tasks", value: "\(agent.activeTasks)", color: .purple)
+            Section(l10n.overview) {
+                statusRow(icon: "circle.fill", label: l10n.status, value: l10n.agentStatus(agent.status), color: agent.status == .online ? .green : .orange)
+                statusRow(icon: "clock", label: l10n.uptime, value: l10n.formatUptime(agent.uptime), color: .blue)
+                statusRow(icon: "checklist", label: l10n.activeTasks, value: "\(agent.activeTasks)", color: .purple)
             }
 
-            // Resource Usage
-            Section("Resources") {
+            Section(l10n.resources) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Label("CPU", systemImage: "cpu")
@@ -31,7 +30,7 @@ struct AgentStatusView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Label("Memory", systemImage: "memorychip")
+                        Label(l10n.memory, systemImage: "memorychip")
                             .font(.subheadline)
                         Spacer()
                         Text(String(format: "%.1f%%", agent.memoryUsage))
@@ -45,25 +44,23 @@ struct AgentStatusView: View {
                 .padding(.vertical, 4)
             }
 
-            // Token Usage
-            Section("Usage") {
+            Section(l10n.usage) {
                 HStack {
-                    Label("Tokens Used", systemImage: "number")
+                    Label(l10n.tokensUsed, systemImage: "number")
                     Spacer()
                     Text(formatNumber(agent.tokenUsage))
                         .font(.system(.body, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
                 HStack {
-                    Label("Memory Store", systemImage: "internaldrive")
+                    Label(l10n.memoryStore, systemImage: "internaldrive")
                     Spacer()
-                    Text("\(agent.memorySize) items")
+                    Text("\(agent.memorySize) \(l10n.items)")
                         .foregroundStyle(.secondary)
                 }
             }
 
-            // Tools
-            Section("Active Tools") {
+            Section(l10n.activeTools) {
                 ForEach(agent.tools, id: \.self) { tool in
                     HStack {
                         Circle()
@@ -71,14 +68,14 @@ struct AgentStatusView: View {
                             .frame(width: 8, height: 8)
                         Text(tool)
                         Spacer()
-                        Text("Enabled")
+                        Text(l10n.enabled)
                             .font(.caption)
                             .foregroundStyle(.green)
                     }
                 }
             }
         }
-        .navigationTitle("Agent Dashboard")
+        .navigationTitle(l10n.agentDashboard)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -99,12 +96,6 @@ struct AgentStatusView: View {
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private func formatUptime(_ seconds: TimeInterval) -> String {
-        let days = Int(seconds) / 86400
-        let hours = (Int(seconds) % 86400) / 3600
-        return "\(days)d \(hours)h"
     }
 
     private func formatNumber(_ n: Int) -> String {

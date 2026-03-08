@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskRowView: View {
     let task: AgentTask
     let onRun: () -> Void
+    @Environment(L10n.self) private var l10n
 
     var statusColor: Color {
         switch task.status {
@@ -44,7 +45,7 @@ struct TaskRowView: View {
                 Spacer()
 
                 if let lastRun = task.lastRunAt {
-                    Text("Last: \(lastRun, style: .relative)")
+                    Text("\(l10n.lastRun): \(lastRun, style: .relative)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -55,7 +56,7 @@ struct TaskRowView: View {
                 Button {
                     onRun()
                 } label: {
-                    Label("Run Now", systemImage: "play.fill")
+                    Label(l10n.runNow, systemImage: "play.fill")
                         .font(.caption)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct ClawMobileApp: App {
     @State private var appState = AppState()
+    @State private var l10n = L10n.shared
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,7 @@ struct ClawMobileApp: App {
                 }
             }
             .environment(appState)
+            .environment(l10n)
             .preferredColorScheme(.dark)
         }
     }

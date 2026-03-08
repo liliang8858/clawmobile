@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessageBubble: View {
     let message: Message
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         switch message.role {
@@ -42,7 +43,7 @@ struct MessageBubble: View {
                     Image(systemName: "cpu")
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
-                    Text("Agent")
+                    Text(l10n.agent)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

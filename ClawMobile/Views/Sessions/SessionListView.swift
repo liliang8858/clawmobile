@@ -3,11 +3,11 @@ import SwiftUI
 struct SessionListView: View {
     @State private var viewModel = SessionsViewModel()
     @Environment(AppState.self) private var appState
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         NavigationStack {
             List {
-                // Agent status header
                 if let agent = appState.connectedAgent {
                     Section {
                         HStack(spacing: 12) {
@@ -22,7 +22,7 @@ struct SessionListView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Text(agent.status.rawValue.capitalized)
+                            Text(l10n.agentStatus(agent.status))
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
@@ -34,8 +34,7 @@ struct SessionListView: View {
                     }
                 }
 
-                // Sessions
-                Section("Sessions") {
+                Section(l10n.sessions) {
                     ForEach(viewModel.sessions) { session in
                         NavigationLink {
                             ChatView(session: session)
@@ -50,7 +49,7 @@ struct SessionListView: View {
                     }
                 }
             }
-            .navigationTitle("Claw Mobile")
+            .navigationTitle(l10n.appName)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -60,12 +59,12 @@ struct SessionListView: View {
                     }
                 }
             }
-            .alert("New Session", isPresented: $viewModel.showingNewSession) {
-                TextField("Session name", text: $viewModel.newSessionName)
-                Button("Create") { viewModel.createSession() }
-                Button("Cancel", role: .cancel) { }
+            .alert(l10n.newSession, isPresented: $viewModel.showingNewSession) {
+                TextField(l10n.sessionName, text: $viewModel.newSessionName)
+                Button(l10n.create) { viewModel.createSession() }
+                Button(l10n.cancel, role: .cancel) { }
             } message: {
-                Text("Enter a name for the new session")
+                Text(l10n.enterSessionName)
             }
         }
     }

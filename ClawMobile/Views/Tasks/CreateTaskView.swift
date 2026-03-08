@@ -3,42 +3,42 @@ import SwiftUI
 struct CreateTaskView: View {
     @Bindable var viewModel: TasksViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Task Details") {
-                    TextField("Task name", text: $viewModel.newTaskName)
-                    TextField("Prompt", text: $viewModel.newTaskPrompt, axis: .vertical)
+                Section(l10n.taskDetails) {
+                    TextField(l10n.taskName, text: $viewModel.newTaskName)
+                    TextField(l10n.prompt, text: $viewModel.newTaskPrompt, axis: .vertical)
                         .lineLimit(3...6)
                 }
 
-                Section("Schedule (cron)") {
-                    TextField("Cron expression", text: $viewModel.newTaskSchedule)
+                Section(l10n.scheduleCron) {
+                    TextField(l10n.cronExpression, text: $viewModel.newTaskSchedule)
                         .font(.system(.body, design: .monospaced))
 
-                    // Quick presets
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Quick presets")
+                        Text(l10n.quickPresets)
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
                         HStack(spacing: 8) {
-                            schedulePreset("Every hour", cron: "0 * * * *")
-                            schedulePreset("Daily 9am", cron: "0 9 * * *")
-                            schedulePreset("Weekly Mon", cron: "0 9 * * 1")
+                            schedulePreset(l10n.everyHour, cron: "0 * * * *")
+                            schedulePreset(l10n.daily9am, cron: "0 9 * * *")
+                            schedulePreset(l10n.weeklyMon, cron: "0 9 * * 1")
                         }
                     }
                 }
             }
-            .navigationTitle("New Task")
+            .navigationTitle(l10n.newTask)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button(l10n.cancel) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Create") {
+                    Button(l10n.create) {
                         viewModel.createTask()
                     }
                     .fontWeight(.semibold)

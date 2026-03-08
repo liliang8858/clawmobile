@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MemoryListView: View {
     @State private var viewModel = MemoryViewModel()
+    @Environment(L10n.self) private var l10n
     @State private var showingAddMemory = false
     @State private var newContent = ""
     @State private var newCategory: MemoryItem.MemoryCategory = .fact
@@ -10,7 +11,7 @@ struct MemoryListView: View {
         NavigationStack {
             List {
                 if !viewModel.pinnedItems.isEmpty {
-                    Section("Pinned") {
+                    Section(l10n.pinned) {
                         ForEach(viewModel.pinnedItems) { item in
                             memoryRow(item)
                         }
@@ -18,7 +19,7 @@ struct MemoryListView: View {
                 }
 
                 if !viewModel.facts.isEmpty {
-                    Section("Facts") {
+                    Section(l10n.facts) {
                         ForEach(viewModel.facts) { item in
                             memoryRow(item)
                         }
@@ -26,7 +27,7 @@ struct MemoryListView: View {
                 }
 
                 if !viewModel.preferences.isEmpty {
-                    Section("Preferences") {
+                    Section(l10n.preferences) {
                         ForEach(viewModel.preferences) { item in
                             memoryRow(item)
                         }
@@ -34,14 +35,14 @@ struct MemoryListView: View {
                 }
 
                 if !viewModel.knowledge.isEmpty {
-                    Section("Knowledge") {
+                    Section(l10n.knowledge) {
                         ForEach(viewModel.knowledge) { item in
                             memoryRow(item)
                         }
                     }
                 }
             }
-            .navigationTitle("Memory")
+            .navigationTitle(l10n.memory)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -51,18 +52,26 @@ struct MemoryListView: View {
                     }
                 }
             }
-            .alert("Add Memory", isPresented: $showingAddMemory) {
-                TextField("Content", text: $newContent)
-                Button("Add") {
+            .alert(l10n.addMemory, isPresented: $showingAddMemory) {
+                TextField(l10n.content, text: $newContent)
+                Button(l10n.add) {
                     if !newContent.isEmpty {
                         viewModel.addItem(content: newContent, category: newCategory)
                         newContent = ""
                     }
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(l10n.cancel, role: .cancel) { }
             } message: {
-                Text("Enter a new memory item")
+                Text(l10n.enterMemoryItem)
             }
+        }
+    }
+
+    private func categoryLabel(_ category: MemoryItem.MemoryCategory) -> String {
+        switch category {
+        case .fact: return l10n.factLabel
+        case .preference: return l10n.preferenceLabel
+        case .knowledge: return l10n.knowledgeLabel
         }
     }
 
@@ -80,7 +89,7 @@ struct MemoryListView: View {
                     .font(.subheadline)
 
                 HStack {
-                    Text(item.category.label)
+                    Text(categoryLabel(item.category))
                         .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -107,14 +116,14 @@ struct MemoryListView: View {
             Button(role: .destructive) {
                 viewModel.deleteItem(item)
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(l10n.delete, systemImage: "trash")
             }
         }
         .swipeActions(edge: .leading) {
             Button {
                 viewModel.togglePin(item)
             } label: {
-                Label(item.isPinned ? "Unpin" : "Pin", systemImage: item.isPinned ? "pin.slash" : "pin")
+                Label(item.isPinned ? l10n.unpin : l10n.pin, systemImage: item.isPinned ? "pin.slash" : "pin")
             }
             .tint(.orange)
         }

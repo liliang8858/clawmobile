@@ -4,13 +4,14 @@ struct ApprovalView: View {
     let message: Message
     let onApprove: () -> Void
     let onDeny: () -> Void
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: "exclamationmark.shield.fill")
                     .foregroundStyle(.orange)
-                Text("Agent wants to run:")
+                Text(l10n.agentWantsToRun)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
@@ -32,7 +33,7 @@ struct ApprovalView: View {
                 Button {
                     onDeny()
                 } label: {
-                    Text("Deny")
+                    Text(l10n.deny)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
@@ -45,7 +46,7 @@ struct ApprovalView: View {
                 Button {
                     onApprove()
                 } label: {
-                    Text("Approve")
+                    Text(l10n.approve)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)

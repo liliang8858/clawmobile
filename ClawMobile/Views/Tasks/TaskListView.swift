@@ -2,12 +2,13 @@ import SwiftUI
 
 struct TaskListView: View {
     @State private var viewModel = TasksViewModel()
+    @Environment(L10n.self) private var l10n
 
     var body: some View {
         NavigationStack {
             List {
                 if !viewModel.runningTasks.isEmpty {
-                    Section("Running") {
+                    Section(l10n.running) {
                         ForEach(viewModel.runningTasks) { task in
                             TaskRowView(task: task, onRun: { viewModel.runTask(task) })
                         }
@@ -15,7 +16,7 @@ struct TaskListView: View {
                 }
 
                 if !viewModel.scheduledTasks.isEmpty {
-                    Section("Scheduled") {
+                    Section(l10n.scheduled) {
                         ForEach(viewModel.scheduledTasks) { task in
                             TaskRowView(task: task, onRun: { viewModel.runTask(task) })
                         }
@@ -29,14 +30,14 @@ struct TaskListView: View {
                 }
 
                 if !viewModel.completedTasks.isEmpty {
-                    Section("Completed") {
+                    Section(l10n.completed) {
                         ForEach(viewModel.completedTasks) { task in
                             TaskRowView(task: task, onRun: { viewModel.runTask(task) })
                         }
                     }
                 }
             }
-            .navigationTitle("Tasks")
+            .navigationTitle(l10n.tasks)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
