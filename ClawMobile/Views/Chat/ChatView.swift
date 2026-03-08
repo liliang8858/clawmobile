@@ -44,14 +44,24 @@ struct ChatView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .focused($isInputFocused)
 
-                Button {
-                    viewModel.sendMessage()
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isStreaming ? .gray : Color.accentColor)
+                if viewModel.isStreaming {
+                    Button {
+                        viewModel.abortChat()
+                    } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(.red)
+                    }
+                } else {
+                    Button {
+                        viewModel.sendMessage()
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : Color.accentColor)
+                    }
+                    .disabled(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                .disabled(viewModel.inputText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isStreaming)
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -69,6 +79,9 @@ struct ChatView: View {
                     Image(systemName: "ellipsis.circle")
                 }
             }
+        }
+        .onAppear {
+            viewModel.setup(sessionKey: session.id)
         }
     }
 }

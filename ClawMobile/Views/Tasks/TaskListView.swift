@@ -7,32 +7,40 @@ struct TaskListView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !viewModel.runningTasks.isEmpty {
-                    Section(l10n.running) {
-                        ForEach(viewModel.runningTasks) { task in
-                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
-                        }
+                if viewModel.isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
                     }
-                }
-
-                if !viewModel.scheduledTasks.isEmpty {
-                    Section(l10n.scheduled) {
-                        ForEach(viewModel.scheduledTasks) { task in
-                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
-                        }
-                        .onDelete { indexSet in
-                            let scheduled = viewModel.scheduledTasks
-                            for index in indexSet {
-                                viewModel.deleteTask(scheduled[index])
+                } else {
+                    if !viewModel.runningTasks.isEmpty {
+                        Section(l10n.running) {
+                            ForEach(viewModel.runningTasks) { task in
+                                TaskRowView(task: task, onRun: { viewModel.runTask(task) })
                             }
                         }
                     }
-                }
 
-                if !viewModel.completedTasks.isEmpty {
-                    Section(l10n.completed) {
-                        ForEach(viewModel.completedTasks) { task in
-                            TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                    if !viewModel.scheduledTasks.isEmpty {
+                        Section(l10n.scheduled) {
+                            ForEach(viewModel.scheduledTasks) { task in
+                                TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                            }
+                            .onDelete { indexSet in
+                                let scheduled = viewModel.scheduledTasks
+                                for index in indexSet {
+                                    viewModel.deleteTask(scheduled[index])
+                                }
+                            }
+                        }
+                    }
+
+                    if !viewModel.completedTasks.isEmpty {
+                        Section(l10n.completed) {
+                            ForEach(viewModel.completedTasks) { task in
+                                TaskRowView(task: task, onRun: { viewModel.runTask(task) })
+                            }
                         }
                     }
                 }
@@ -47,8 +55,14 @@ struct TaskListView: View {
                     }
                 }
             }
+            .refreshable {
+                viewModel.loadTasks()
+            }
             .sheet(isPresented: $viewModel.showingCreateTask) {
                 CreateTaskView(viewModel: viewModel)
+            }
+            .onAppear {
+                viewModel.loadTasks()
             }
         }
     }

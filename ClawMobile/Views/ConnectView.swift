@@ -16,7 +16,7 @@ struct ConnectView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 40) {
+            VStack(spacing: 32) {
                 Spacer()
 
                 // Logo
@@ -49,6 +49,12 @@ struct ConnectView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                // Discovered Agent Card
+                if let agent = appState.discoveredAgent {
+                    discoveredAgentCard(agent)
+                        .transition(.scale.combined(with: .opacity))
+                }
+
                 Spacer()
 
                 VStack(spacing: 16) {
@@ -59,71 +65,24 @@ struct ConnectView: View {
                         Text(l10n.connecting)
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                    } else if showTokenInput {
-                        VStack(spacing: 12) {
-                            TextField(l10n.agentURLOrToken, text: $token)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .foregroundStyle(.white)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-
-                            Button {
-                                appState.connect(token: token.isEmpty ? "demo" : token)
-                            } label: {
-                                Text(l10n.connect)
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.accentColor)
-                                    .foregroundStyle(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-
-                            Button(l10n.back) {
-                                withAnimation { showTokenInput = false }
-                            }
+                    } else if appState.isScanning {
+                        ProgressView()
+                            .scaleEffect(1.0)
+                            .tint(.accentColor)
+                        Text(l10n.language == .zh ? "正在扫描本地 Agent..." : "Scanning for local Agent...")
+                            .font(.callout)
                             .foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                        }
-                        .padding(.horizontal)
+                    } else if showTokenInput {
+                        tokenInputView
                     } else {
-                        Button {
-                            appState.connect(token: "demo-token")
-                        } label: {
-                            Label(l10n.scanQR, systemImage: "qrcode.viewfinder")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.accentColor)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .padding(.horizontal)
+                        connectionButtons
+                    }
 
-                        Button {
-                            withAnimation { showTokenInput = true }
-                        } label: {
-                            Label(l10n.enterToken, systemImage: "keyboard")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.08))
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .padding(.horizontal)
-
-                        Button {
-                            appState.connect(token: "demo")
-                        } label: {
-                            Text(l10n.tryDemo)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.top, 8)
+                    if let error = appState.connectionError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal)
                     }
                 }
 
@@ -133,6 +92,137 @@ struct ConnectView: View {
         }
         .onAppear {
             pulseAnimation = true
+            appState.scanForAgent()
+        }
+    }
+
+    // MARK: - Discovered Agent Card
+
+    private func discoveredAgentCard(_ agent: DiscoveredAgent) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Text(agent.avatar)
+                    .font(.system(size: 36))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                        Text(l10n.language == .zh ? "发现本地 Agent" : "Local Agent Found")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+
+                    Text(agent.name)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("v\(agent.serverVersion) | \(agent.url)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding()
+            .background(Color.green.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+            )
+
+            Button {
+                appState.connectToDiscovered()
+            } label: {
+                Label(l10n.language == .zh ? "连接此 Agent" : "Connect to Agent", systemImage: "link.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    // MARK: - Token Input
+
+    private var tokenInputView: some View {
+        VStack(spacing: 12) {
+            TextField(l10n.agentURLOrToken, text: $token)
+                .textFieldStyle(.plain)
+                .padding()
+                .background(Color.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .foregroundStyle(.white)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+
+            Button {
+                appState.connect(token: token.isEmpty ? "demo" : token)
+            } label: {
+                Text(l10n.connect)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
+            Button(l10n.back) {
+                withAnimation { showTokenInput = false }
+            }
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
+        }
+        .padding(.horizontal)
+    }
+
+    // MARK: - Connection Buttons
+
+    private var connectionButtons: some View {
+        VStack(spacing: 16) {
+            if appState.discoveredAgent == nil {
+                // No agent found - show scan + manual options
+                Button {
+                    appState.scanForAgent()
+                } label: {
+                    Label(l10n.language == .zh ? "重新扫描" : "Scan Again", systemImage: "antenna.radiowaves.left.and.right")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal)
+            }
+
+            Button {
+                withAnimation { showTokenInput = true }
+            } label: {
+                Label(l10n.enterToken, systemImage: "keyboard")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white.opacity(0.08))
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.horizontal)
+
+            Button {
+                appState.connect(token: "demo")
+            } label: {
+                Text(l10n.tryDemo)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 4)
         }
     }
 }

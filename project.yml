@@ -15,6 +15,13 @@ targets:
     platform: iOS
     sources:
       - ClawMobile
+    info:
+      path: ClawMobile/Info.plist
+      properties:
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+        NSLocalNetworkUsageDescription: "Claw Mobile needs local network access to discover and connect to OpenClaw Agent"
     settings:
       base:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true

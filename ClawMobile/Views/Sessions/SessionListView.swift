@@ -11,9 +11,14 @@ struct SessionListView: View {
                 if let agent = appState.connectedAgent {
                     Section {
                         HStack(spacing: 12) {
-                            Circle()
-                                .fill(agent.status == .online ? Color.green : Color.orange)
-                                .frame(width: 10, height: 10)
+                            if let discovered = appState.discoveredAgent {
+                                Text(discovered.avatar)
+                                    .font(.title2)
+                            } else {
+                                Circle()
+                                    .fill(agent.status == .online ? Color.green : Color.orange)
+                                    .frame(width: 10, height: 10)
+                            }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(agent.name)
                                     .font(.headline)
@@ -35,16 +40,24 @@ struct SessionListView: View {
                 }
 
                 Section(l10n.sessions) {
-                    ForEach(viewModel.sessions) { session in
-                        NavigationLink {
-                            ChatView(session: session)
-                        } label: {
-                            SessionRowView(session: session)
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
                         }
-                    }
-                    .onDelete { indexSet in
-                        for index in indexSet {
-                            viewModel.deleteSession(viewModel.sessions[index])
+                    } else {
+                        ForEach(viewModel.sessions) { session in
+                            NavigationLink {
+                                ChatView(session: session)
+                            } label: {
+                                SessionRowView(session: session)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            for index in indexSet {
+                                viewModel.deleteSession(viewModel.sessions[index])
+                            }
                         }
                     }
                 }
@@ -59,12 +72,18 @@ struct SessionListView: View {
                     }
                 }
             }
+            .refreshable {
+                viewModel.loadSessions()
+            }
             .alert(l10n.newSession, isPresented: $viewModel.showingNewSession) {
                 TextField(l10n.sessionName, text: $viewModel.newSessionName)
                 Button(l10n.create) { viewModel.createSession() }
                 Button(l10n.cancel, role: .cancel) { }
             } message: {
                 Text(l10n.enterSessionName)
+            }
+            .onAppear {
+                viewModel.loadSessions()
             }
         }
     }
