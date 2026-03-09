@@ -40,6 +40,13 @@ struct SessionListView: View {
                 }
 
                 Section(l10n.sessions) {
+                    // Debug info
+                    if !appState.isDemoMode {
+                        Text("ws=\(OpenClawService.shared.isConnected) sessions=\(OpenClawService.shared.cachedSessions.count) demo=\(appState.isDemoMode)")
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.orange)
+                    }
+
                     if viewModel.isLoading {
                         HStack {
                             Spacer()

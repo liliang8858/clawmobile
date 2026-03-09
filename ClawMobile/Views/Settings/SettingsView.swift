@@ -72,6 +72,15 @@ struct SettingsView: View {
                     }
                 }
 
+                // Debug Log
+                if !OpenClawService.shared.connectionLog.isEmpty {
+                    Section("Debug Log") {
+                        Text(OpenClawService.shared.connectionLog)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section {
                     Button(role: .destructive) {
                         appState.disconnect()

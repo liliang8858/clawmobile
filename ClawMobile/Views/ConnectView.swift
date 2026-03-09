@@ -94,6 +94,23 @@ struct ConnectView: View {
             pulseAnimation = true
             appState.scanForAgent()
         }
+        // Debug overlay
+        .overlay(alignment: .bottom) {
+            if !appState.debugLog.isEmpty {
+                ScrollView {
+                    Text(appState.debugLog)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.green)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 150)
+                .background(Color.black.opacity(0.9))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 50)
+            }
+        }
     }
 
     // MARK: - Discovered Agent Card

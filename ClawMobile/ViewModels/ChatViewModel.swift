@@ -36,40 +36,9 @@ final class ChatViewModel {
             return
         }
 
-        Task {
-            do {
-                let rawMessages = try await service.getChatHistory(sessionKey: sessionKey, limit: 50)
-                var loaded: [Message] = []
-                for raw in rawMessages {
-                    let role = raw["role"] as? String ?? "user"
-                    var content = ""
-                    if let c = raw["content"] as? String {
-                        content = c
-                    } else if let blocks = raw["content"] as? [[String: Any]] {
-                        for block in blocks {
-                            if block["type"] as? String == "text",
-                               let t = block["text"] as? String {
-                                content += t
-                            }
-                        }
-                    }
-
-                    let msgRole: Message.MessageRole = switch role {
-                    case "user": .user
-                    case "assistant": .agent
-                    case "tool": .tool
-                    default: .system
-                    }
-
-                    if !content.isEmpty {
-                        loaded.append(Message(role: msgRole, content: content))
-                    }
-                }
-                self.messages = loaded
-            } catch {
-                // Keep empty
-            }
-        }
+        // Chat history requires operator.read scope (crypto identity).
+        // For now, start with empty messages. History will build from events.
+        messages = []
     }
 
     private func setupEventListeners() {
