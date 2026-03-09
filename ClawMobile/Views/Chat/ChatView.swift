@@ -82,7 +82,10 @@ struct ChatView: View {
             }
         }
         .onAppear {
-            viewModel.setup(sessionKey: session.id, isDemoMode: appState.isDemoMode)
+            viewModel.setup(sessionKey: session.id)
+        }
+        .onDisappear {
+            viewModel.cleanup()
         }
     }
 }

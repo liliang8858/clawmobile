@@ -62,9 +62,12 @@ final class OpenClawService {
     var discoveredAgent: DiscoveredAgent?
     var isScanning = false
     var cachedSessions: [[String: Any]] = []
+    var cachedCrons: [[String: Any]] = []
+    var cachedAgentInfo: [String: Any] = [:]
+    var cachedChannels: [String: Any] = [:]
     var connectionLog: String = ""
 
-    var onChatEvent: ((ChatEvent) -> Void)?
+    var chatEventHandlers: [String: (ChatEvent) -> Void] = [:]
     var onApprovalRequested: ((ApprovalRequest) -> Void)?
 
     private var webSocketTask: URLSessionWebSocketTask?
@@ -78,6 +81,13 @@ final class OpenClawService {
     }
     struct ApprovalRequest: @unchecked Sendable {
         let id: String; let command: String; let sessionKey: String?
+    }
+
+    func addChatHandler(id: String, handler: @escaping (ChatEvent) -> Void) {
+        chatEventHandlers[id] = handler
+    }
+    func removeChatHandler(id: String) {
+        chatEventHandlers.removeValue(forKey: id)
     }
 
     private func appendLog(_ msg: String) {
@@ -139,11 +149,9 @@ final class OpenClawService {
     }
 
     private func readGatewayToken() -> String {
-        // In iOS Simulator, NSHomeDirectory() is sandbox, not real Mac home.
-        // Try multiple paths to find the config.
         let candidates = [
-            "/Users/vincent/.openclaw/openclaw.json",          // Direct Mac path
-            NSHomeDirectory() + "/.openclaw/openclaw.json",    // Sandbox (won't work but try)
+            "/Users/vincent/.openclaw/openclaw.json",
+            NSHomeDirectory() + "/.openclaw/openclaw.json",
             ProcessInfo.processInfo.environment["HOME"].map { $0 + "/.openclaw/openclaw.json" },
         ].compactMap { $0 }
 
@@ -166,6 +174,7 @@ final class OpenClawService {
 
     func connect() async throws {
         isConnecting = true
+
         let wsURLStr = "ws://127.0.0.1:\(port)"
         appendLog("[ws] connecting to \(wsURLStr)")
 
@@ -182,20 +191,19 @@ final class OpenClawService {
         let challengeMsg = try await receiveOne()
         appendLog("[ws] got challenge: \(String(challengeMsg.prefix(100)))")
 
-        // 2. Send connect handshake
-        var authParams: [String: Any] = [:]
-        if !gatewayToken.isEmpty {
-            authParams["token"] = gatewayToken
-        }
-        appendLog("[ws] sending connect handshake (token: \(gatewayToken.isEmpty ? "none" : "present"))")
-
+        // 2. Send connect with gateway token, role, and scopes
         let connectId = UUID().uuidString
         let connectReq: [String: Any] = [
             "type": "req", "id": connectId, "method": "connect",
             "params": [
                 "minProtocol": 3, "maxProtocol": 3,
-                "client": ["id": "webchat", "mode": "webchat", "version": "1.0.0", "platform": "ios"],
-                "auth": authParams
+                "client": [
+                    "id": "webchat", "mode": "webchat",
+                    "version": "1.0.0", "platform": "ios"
+                ] as [String: Any],
+                "role": "operator",
+                "scopes": ["operator.read", "operator.write", "operator.approvals"],
+                "auth": ["token": gatewayToken]
             ] as [String: Any]
         ]
         try await sendRaw(connectReq)
@@ -232,10 +240,10 @@ final class OpenClawService {
         // 4. Start event loop
         Task { await receiveMessages() }
 
-        // 5. Fetch sessions from health
-        appendLog("[ws] fetching sessions from health...")
-        await fetchSessionsFromHealth()
-        appendLog("[ws] got \(cachedSessions.count) sessions")
+        // 5. Fetch data from health
+        appendLog("[ws] fetching health data...")
+        await fetchHealthData()
+        appendLog("[ws] got \(cachedSessions.count) sessions, \(cachedCrons.count) crons")
 
         isConnected = true
         isConnecting = false
@@ -247,30 +255,53 @@ final class OpenClawService {
         isConnected = false
         pendingRequests.removeAll()
         cachedSessions = []
+        cachedCrons = []
+        cachedAgentInfo = [:]
+        cachedChannels = [:]
+        chatEventHandlers = [:]
         connectionLog = ""
     }
 
-    // MARK: - Health-based Session Fetch
+    // MARK: - Health-based Data Fetch
 
-    func fetchSessionsFromHealth() async {
+    func fetchHealthData() async {
         do {
             let res = try await send(method: "health", params: [:])
-            if let payload = res.payload?.dictValue,
-               let agents = payload["agents"] as? [[String: Any]] {
-                var sessions: [[String: Any]] = []
-                for agent in agents {
-                    if let sessInfo = agent["sessions"] as? [String: Any],
-                       let recent = sessInfo["recent"] as? [[String: Any]] {
-                        sessions.append(contentsOf: recent)
-                    }
-                }
-                cachedSessions = sessions
-                appendLog("[health] parsed \(sessions.count) sessions from \(agents.count) agents")
-            } else {
-                appendLog("[health] no agents/sessions in payload")
-            }
+            parseHealthPayload(res.payload?.dictValue)
         } catch {
             appendLog("[health] error: \(error.localizedDescription)")
+        }
+    }
+
+    func parseHealthPayload(_ payload: [String: Any]?) {
+        guard let payload = payload else { return }
+
+        // Extract channels
+        if let channels = payload["channels"] as? [String: Any] {
+            cachedChannels = channels
+        }
+
+        // Extract agent data
+        if let agents = payload["agents"] as? [[String: Any]] {
+            var sessions: [[String: Any]] = []
+            var crons: [[String: Any]] = []
+            for agent in agents {
+                cachedAgentInfo = agent
+
+                if let sessInfo = agent["sessions"] as? [String: Any],
+                   let recent = sessInfo["recent"] as? [[String: Any]] {
+                    sessions.append(contentsOf: recent)
+                }
+
+                if let cronList = agent["crons"] as? [[String: Any]] {
+                    crons.append(contentsOf: cronList)
+                }
+            }
+            cachedSessions = sessions
+            cachedCrons = crons
+            appendLog("[health] parsed \(sessions.count) sessions, \(crons.count) crons from \(agents.count) agents")
+        } else {
+            appendLog("[health] no agents in payload")
         }
     }
 
@@ -385,7 +416,10 @@ final class OpenClawService {
                     if block["type"] as? String == "text", let t = block["text"] as? String { text += t }
                 }
             }
-            onChatEvent?(ChatEvent(sessionKey: sessionKey, runId: runId, state: state, text: text))
+            let chatEvent = ChatEvent(sessionKey: sessionKey, runId: runId, state: state, text: text)
+            for handler in chatEventHandlers.values {
+                handler(chatEvent)
+            }
 
         case "exec.approval.requested":
             if let req = payload["request"] as? [String: Any] {
@@ -395,6 +429,11 @@ final class OpenClawService {
                     sessionKey: req["sessionKey"] as? String
                 ))
             }
+
+        case "health":
+            // Update cached data from health broadcasts
+            parseHealthPayload(payload)
+
         default: break
         }
     }
@@ -403,7 +442,10 @@ final class OpenClawService {
 
     func getIdentity() async throws -> [String: Any] {
         let res = try await send(method: "agent.identity.get")
-        return res.payload?.dictValue ?? [:]
+        if res.ok == true {
+            return res.payload?.dictValue ?? [:]
+        }
+        return cachedAgentInfo
     }
 
     func sendChat(sessionKey: String, message: String) async throws -> String {
@@ -419,16 +461,40 @@ final class OpenClawService {
     }
 
     func abortChat(sessionKey: String) { sendNoWait(method: "chat.abort", params: ["sessionKey": sessionKey]) }
+
     func listCrons() async throws -> [[String: Any]] {
         let res = try await send(method: "cron.list")
-        return res.payload?.dictValue?["crons"] as? [[String: Any]]
-            ?? res.payload?.dictValue?["jobs"] as? [[String: Any]] ?? []
+        if res.ok == true {
+            return res.payload?.dictValue?["crons"] as? [[String: Any]]
+                ?? res.payload?.dictValue?["jobs"] as? [[String: Any]] ?? []
+        }
+        return cachedCrons
     }
+
     func addCron(label: String, prompt: String, schedule: String) async throws {
-        _ = try await send(method: "cron.add", params: ["label": label, "prompt": prompt, "schedule": schedule])
+        let res = try await send(method: "cron.add", params: ["label": label, "prompt": prompt, "schedule": schedule])
+        if res.ok != true {
+            throw NSError(domain: "OpenClaw", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: res.error?.message ?? "cron.add failed"])
+        }
     }
-    func runCron(id: String) async throws { _ = try await send(method: "cron.run", params: ["id": id]) }
-    func removeCron(id: String) async throws { _ = try await send(method: "cron.remove", params: ["id": id]) }
+
+    func runCron(id: String) async throws {
+        let res = try await send(method: "cron.run", params: ["id": id])
+        if res.ok != true {
+            throw NSError(domain: "OpenClaw", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: res.error?.message ?? "cron.run failed"])
+        }
+    }
+
+    func removeCron(id: String) async throws {
+        let res = try await send(method: "cron.remove", params: ["id": id])
+        if res.ok != true {
+            throw NSError(domain: "OpenClaw", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: res.error?.message ?? "cron.remove failed"])
+        }
+    }
+
     func resolveApproval(id: String, decision: String) async throws {
         _ = try await send(method: "exec.approval.resolve", params: ["id": id, "decision": decision])
     }

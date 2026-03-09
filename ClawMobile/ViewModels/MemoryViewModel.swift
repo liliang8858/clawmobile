@@ -10,12 +10,9 @@ final class MemoryViewModel {
     var preferences: [MemoryItem] { items.filter { $0.category == .preference && !$0.isPinned } }
     var knowledge: [MemoryItem] { items.filter { $0.category == .knowledge && !$0.isPinned } }
 
-    func loadItems(isDemoMode: Bool = false) {
-        if isDemoMode {
-            items = MockService.shared.memoryItems
-        }
-        // Real OpenClaw memory is managed via MEMORY.md on the agent side.
-        // For now, real mode shows empty (future: fetch via agents.files.get)
+    func loadItems() {
+        // Agent memory is managed via MEMORY.md on the agent side.
+        // Future: fetch via agent file system API
     }
 
     func togglePin(_ item: MemoryItem) {

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct TaskListView: View {
     @State private var viewModel = TasksViewModel()
-    @Environment(AppState.self) private var appState
     @Environment(L10n.self) private var l10n
 
     var body: some View {
@@ -13,6 +12,12 @@ struct TaskListView: View {
                         Spacer()
                         ProgressView()
                         Spacer()
+                    }
+                } else if viewModel.tasks.isEmpty {
+                    ContentUnavailableView {
+                        Label(l10n.language == .zh ? "暂无任务" : "No Tasks", systemImage: "checklist")
+                    } description: {
+                        Text(l10n.language == .zh ? "点击右上角 + 创建新的定时任务" : "Tap + to create a new scheduled task")
                     }
                 } else {
                     if !viewModel.runningTasks.isEmpty {
@@ -57,13 +62,13 @@ struct TaskListView: View {
                 }
             }
             .refreshable {
-                viewModel.loadTasks(isDemoMode: appState.isDemoMode)
+                viewModel.loadTasks()
             }
             .sheet(isPresented: $viewModel.showingCreateTask) {
                 CreateTaskView(viewModel: viewModel)
             }
             .onAppear {
-                viewModel.loadTasks(isDemoMode: appState.isDemoMode)
+                viewModel.loadTasks()
             }
         }
     }

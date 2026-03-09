@@ -9,13 +9,16 @@ struct Session: Identifiable, Codable {
     var isActive: Bool
 
     var icon: String {
-        switch name.lowercased() {
-        case let n where n.contains("startup"): return "rocket"
-        case let n where n.contains("personal"): return "person.fill"
-        case let n where n.contains("research"): return "magnifyingglass"
-        case let n where n.contains("coding"), let n where n.contains("code"): return "chevron.left.forwardslash.chevron.right"
-        case let n where n.contains("work"): return "briefcase.fill"
-        default: return "bubble.left.fill"
-        }
+        let n = name.lowercased()
+        if n.contains("startup") { return "rocket" }
+        if n.contains("personal") { return "person.fill" }
+        if n.contains("research") { return "magnifyingglass" }
+        if n.contains("coding") || n.contains("code") { return "chevron.left.forwardslash.chevron.right" }
+        if n.contains("work") { return "briefcase.fill" }
+        if n.contains("cron") { return "clock.fill" }
+        if n.contains("feishu") { return "message.fill" }
+        if n.contains("telegram") { return "paperplane.fill" }
+        if n.contains("discord") { return "bubble.left.and.text.bubble.right.fill" }
+        return "bubble.left.fill"
     }
 }

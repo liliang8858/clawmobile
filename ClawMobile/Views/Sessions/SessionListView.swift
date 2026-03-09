@@ -40,13 +40,6 @@ struct SessionListView: View {
                 }
 
                 Section(l10n.sessions) {
-                    // Debug info
-                    if !appState.isDemoMode {
-                        Text("ws=\(OpenClawService.shared.isConnected) sessions=\(OpenClawService.shared.cachedSessions.count) demo=\(appState.isDemoMode)")
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.orange)
-                    }
-
                     if viewModel.isLoading {
                         HStack {
                             Spacer()
@@ -80,7 +73,7 @@ struct SessionListView: View {
                 }
             }
             .refreshable {
-                viewModel.loadSessions(isDemoMode: appState.isDemoMode)
+                viewModel.loadSessions()
             }
             .alert(l10n.newSession, isPresented: $viewModel.showingNewSession) {
                 TextField(l10n.sessionName, text: $viewModel.newSessionName)
@@ -90,7 +83,7 @@ struct SessionListView: View {
                 Text(l10n.enterSessionName)
             }
             .onAppear {
-                viewModel.loadSessions(isDemoMode: appState.isDemoMode)
+                viewModel.loadSessions()
             }
         }
     }

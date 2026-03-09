@@ -9,30 +9,16 @@ final class AppState {
     var connectionError: String?
     var discoveredAgent: DiscoveredAgent?
     var isScanning: Bool = false
-    var isDemoMode: Bool = false
-    var debugLog: String = ""
 
     private let service = OpenClawService.shared
 
-    private func log(_ msg: String) {
-        print("[ClawMobile] \(msg)")
-        NSLog("[ClawMobile] %@", msg)
-        debugLog += msg + "\n"
-    }
-
     func scanForAgent() {
+        guard !isScanning else { return }
         isScanning = true
-        log("scan started")
         Task {
             await service.scanForAgent()
             self.discoveredAgent = service.discoveredAgent
             self.isScanning = false
-            if let d = discoveredAgent {
-                log("found: \(d.name) @ \(d.url), token=\(d.gatewayToken.isEmpty ? "EMPTY" : "ok(\(d.gatewayToken.prefix(8))...)")")
-            } else {
-                log("no agent found")
-            }
-            log("service log:\n\(service.connectionLog)")
         }
     }
 
@@ -40,14 +26,10 @@ final class AppState {
         guard discoveredAgent != nil else { return }
         isConnecting = true
         connectionError = nil
-        isDemoMode = false
-        log("connecting to discovered agent...")
 
         Task {
             do {
                 try await service.connect()
-                log("ws connected! sessions=\(service.cachedSessions.count)")
-                log("service log:\n\(service.connectionLog)")
 
                 let discovered = self.discoveredAgent!
                 self.connectedAgent = Agent(
@@ -55,27 +37,24 @@ final class AppState {
                     name: discovered.name,
                     model: "OpenClaw \(discovered.serverVersion)",
                     status: .online,
-                    tools: ["Shell", "Browser", "Git", "File System"],
+                    tools: extractTools(),
                     memorySize: 0,
-                    activeTasks: 0,
+                    activeTasks: service.cachedCrons.count,
                     cpuUsage: 0,
                     memoryUsage: 0,
                     tokenUsage: 0,
                     uptime: 0
                 )
 
-                if let identity = try? await service.getIdentity() {
-                    if let name = identity["name"] as? String, !name.isEmpty {
-                        self.connectedAgent?.name = name
-                    }
+                // Try to get identity for better agent name
+                if let identity = try? await service.getIdentity(),
+                   let name = identity["name"] as? String, !name.isEmpty {
+                    self.connectedAgent?.name = name
                 }
 
                 self.isConnected = true
                 self.isConnecting = false
-                log("fully connected, sessions=\(service.cachedSessions.count)")
             } catch {
-                log("connect error: \(error.localizedDescription)")
-                log("service log:\n\(service.connectionLog)")
                 self.connectionError = error.localizedDescription
                 self.isConnecting = false
             }
@@ -87,24 +66,26 @@ final class AppState {
             connectToDiscovered()
             return
         }
-
-        isConnecting = true
-        connectionError = nil
-        isDemoMode = true
-        log("demo mode")
-        Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            self.connectedAgent = MockService.shared.agent
-            self.isConnected = true
-            self.isConnecting = false
-        }
+        // No agent discovered and no demo mode - show error
+        connectionError = "No agent found. Please ensure OpenClaw is running."
     }
 
     func disconnect() {
         service.disconnect()
         isConnected = false
         connectedAgent = nil
-        isDemoMode = false
-        debugLog = ""
+    }
+
+    private func extractTools() -> [String] {
+        var tools: [String] = ["Shell", "File System"]
+        let channels = service.cachedChannels
+        if channels["feishu"] != nil { tools.append("Feishu") }
+        if channels["telegram"] != nil { tools.append("Telegram") }
+        if channels["discord"] != nil { tools.append("Discord") }
+        if let heartbeat = service.cachedAgentInfo["heartbeat"] as? [String: Any],
+           heartbeat["enabled"] as? Bool == true {
+            tools.append("Heartbeat")
+        }
+        return tools
     }
 }

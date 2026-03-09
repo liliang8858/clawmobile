@@ -67,7 +67,7 @@ struct SettingsView: View {
                     HStack {
                         Label(l10n.build, systemImage: "hammer")
                         Spacer()
-                        Text("2024.1")
+                        Text("2026.3")
                             .foregroundStyle(.secondary)
                     }
                 }

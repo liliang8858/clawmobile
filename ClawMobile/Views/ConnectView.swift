@@ -94,21 +94,13 @@ struct ConnectView: View {
             pulseAnimation = true
             appState.scanForAgent()
         }
-        // Debug overlay
-        .overlay(alignment: .bottom) {
-            if !appState.debugLog.isEmpty {
-                ScrollView {
-                    Text(appState.debugLog)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.green)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        .onChange(of: appState.discoveredAgent != nil) {
+            // Auto-connect when agent is discovered
+            if appState.discoveredAgent != nil && !appState.isConnecting && !appState.isConnected {
+                Task {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    appState.connectToDiscovered()
                 }
-                .frame(maxHeight: 150)
-                .background(Color.black.opacity(0.9))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal, 8)
-                .padding(.bottom, 50)
             }
         }
     }
@@ -179,7 +171,7 @@ struct ConnectView: View {
                 .textInputAutocapitalization(.never)
 
             Button {
-                appState.connect(token: token.isEmpty ? "demo" : token)
+                appState.connect(token: token)
             } label: {
                 Text(l10n.connect)
                     .font(.headline)
@@ -231,15 +223,6 @@ struct ConnectView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(.horizontal)
-
-            Button {
-                appState.connect(token: "demo")
-            } label: {
-                Text(l10n.tryDemo)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 4)
         }
     }
 }

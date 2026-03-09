@@ -10,11 +10,7 @@ final class SessionsViewModel {
 
     private let service = OpenClawService.shared
 
-    func loadSessions(isDemoMode: Bool = false) {
-        if isDemoMode {
-            sessions = MockService.shared.sessions
-            return
-        }
+    func loadSessions() {
         if !service.isConnected {
             sessions = []
             return
@@ -22,62 +18,65 @@ final class SessionsViewModel {
 
         isLoading = true
 
-        // Use cached sessions from health endpoint
-        var loaded: [Session] = []
+        // Always include a Main session for general chatting
+        var loaded: [Session] = [
+            Session(id: "agent:main:main", name: "Main", lastMessage: "",
+                    createdAt: Date(), messageCount: 0, isActive: true)
+        ]
+
+        // Add sessions from health data
         for raw in service.cachedSessions {
             let key = raw["key"] as? String ?? raw["sessionKey"] as? String ?? UUID().uuidString
 
-            // Parse session key to create a human-readable name
-            // Format: "agent:main:main" or "agent:main:feishu:group:xxx" or "agent:main:cron:xxx"
+            // Skip cron run sub-sessions and the main session (already added)
+            if key.contains(":run:") { continue }
+            if key == "agent:main:main" { continue }
+
             let name = parseSessionName(key)
 
             var updatedAt = Date()
             if let ts = raw["updatedAt"] as? Double {
                 updatedAt = Date(timeIntervalSince1970: ts / 1000)
+            } else if let age = raw["age"] as? Int {
+                updatedAt = Date().addingTimeInterval(Double(-age))
             }
 
-            // Skip cron run sub-sessions
-            if key.contains(":run:") { continue }
-
             loaded.append(Session(
-                id: key,
-                name: name,
-                lastMessage: "",
-                createdAt: updatedAt,
-                messageCount: 0,
-                isActive: true
+                id: key, name: name, lastMessage: "",
+                createdAt: updatedAt, messageCount: 0, isActive: true
             ))
         }
 
-        // Sort by createdAt descending
         loaded.sort { $0.createdAt > $1.createdAt }
-
         self.sessions = loaded
 
-        // Also try to refresh from health
+        // Refresh from health in background
         Task {
-            await service.fetchSessionsFromHealth()
-            var refreshed: [Session] = []
+            await service.fetchHealthData()
+            var refreshed: [Session] = [
+                Session(id: "agent:main:main", name: "Main", lastMessage: "",
+                        createdAt: Date(), messageCount: 0, isActive: true)
+            ]
             for raw in service.cachedSessions {
                 let key = raw["key"] as? String ?? raw["sessionKey"] as? String ?? UUID().uuidString
-                if key.contains(":run:") { continue }
+                if key.contains(":run:") || key == "agent:main:main" { continue }
                 let name = parseSessionName(key)
                 var updatedAt = Date()
                 if let ts = raw["updatedAt"] as? Double {
                     updatedAt = Date(timeIntervalSince1970: ts / 1000)
+                } else if let age = raw["age"] as? Int {
+                    updatedAt = Date().addingTimeInterval(Double(-age))
                 }
-                refreshed.append(Session(id: key, name: name, lastMessage: "", createdAt: updatedAt, messageCount: 0, isActive: true))
+                refreshed.append(Session(id: key, name: name, lastMessage: "",
+                                        createdAt: updatedAt, messageCount: 0, isActive: true))
             }
             refreshed.sort { $0.createdAt > $1.createdAt }
-            if !refreshed.isEmpty { self.sessions = refreshed }
+            self.sessions = refreshed
             isLoading = false
         }
     }
 
     private func parseSessionName(_ key: String) -> String {
-        // "agent:main:main" -> "Main"
-        // "agent:main:feishu:group:oc_xxx" -> "Feishu Group"
-        // "agent:main:cron:uuid" -> "Cron Task"
         let parts = key.split(separator: ":")
         if parts.count >= 3 {
             let segment = String(parts[2])

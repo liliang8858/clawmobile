@@ -21,12 +21,6 @@ struct ClawMobileApp: App {
             .environment(appState)
             .environment(l10n)
             .preferredColorScheme(.dark)
-            .task {
-                NSLog("[ClawMobile] root .task fired, isConnected=\(appState.isConnected)")
-                if !appState.isConnected && !appState.isScanning {
-                    appState.scanForAgent()
-                }
-            }
         }
     }
 }

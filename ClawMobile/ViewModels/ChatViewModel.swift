@@ -13,36 +13,33 @@ final class ChatViewModel {
     private let service = OpenClawService.shared
     private var currentRunId: String?
     private var streamingMessageIndex: Int?
-    private var isDemoMode = false
+
+    private var handlerId: String?
 
     init() {}
 
-    func setup(sessionKey: String, isDemoMode: Bool = false) {
+    func setup(sessionKey: String) {
         self.sessionKey = sessionKey
-        self.isDemoMode = isDemoMode
         loadHistory()
         setupEventListeners()
     }
 
     private func loadHistory() {
-        if isDemoMode {
-            messages = MockService.shared.sampleMessages
-            checkForPendingApprovals()
-            return
-        }
-
         guard service.isConnected, !sessionKey.isEmpty else {
             messages = []
             return
         }
-
-        // Chat history requires operator.read scope (crypto identity).
-        // For now, start with empty messages. History will build from events.
         messages = []
     }
 
     private func setupEventListeners() {
-        service.onChatEvent = { [weak self] event in
+        if let id = handlerId {
+            service.removeChatHandler(id: id)
+        }
+        let id = UUID().uuidString
+        handlerId = id
+
+        service.addChatHandler(id: id) { [weak self] event in
             Task { @MainActor in
                 self?.handleChatEvent(event)
             }
@@ -52,6 +49,13 @@ final class ChatViewModel {
             Task { @MainActor in
                 self?.handleApprovalRequest(approval)
             }
+        }
+    }
+
+    func cleanup() {
+        if let id = handlerId {
+            service.removeChatHandler(id: id)
+            handlerId = nil
         }
     }
 
@@ -124,106 +128,60 @@ final class ChatViewModel {
         isStreaming = true
         streamingMessageIndex = nil
 
-        if service.isConnected && !isDemoMode {
-            Task {
-                do {
-                    let key = sessionKey.isEmpty ? "mobile-\(UUID().uuidString.prefix(8))" : sessionKey
-                    currentRunId = try await service.sendChat(sessionKey: key, message: text)
-                } catch {
-                    isStreaming = false
-                    messages.append(Message(role: .system, content: "Failed to send: \(error.localizedDescription)"))
-                }
+        guard service.isConnected else {
+            isStreaming = false
+            messages.append(Message(role: .system, content: "Not connected to agent"))
+            return
+        }
+
+        Task {
+            do {
+                let key = sessionKey.isEmpty ? "mobile-\(UUID().uuidString.prefix(8))" : sessionKey
+                currentRunId = try await service.sendChat(sessionKey: key, message: text)
+            } catch {
+                isStreaming = false
+                messages.append(Message(role: .system, content: "Failed to send: \(error.localizedDescription)"))
             }
-        } else {
-            simulateResponse(to: text)
         }
     }
 
     func approveToolCall() {
-        if let msg = pendingApproval {
-            if let index = messages.firstIndex(where: { $0.id == msg.id }) {
-                messages[index].toolCall?.status = .running
-            }
-            showApproval = false
-
-            if service.isConnected && !isDemoMode {
-                Task {
-                    try? await service.resolveApproval(id: msg.id, decision: "approve")
-                    if let index = messages.firstIndex(where: { $0.id == msg.id }) {
-                        messages[index].toolCall?.status = .completed
-                    }
-                }
-            } else {
-                Task {
-                    try? await Task.sleep(for: .seconds(1.5))
-                    if let index = messages.firstIndex(where: { $0.id == msg.id }) {
-                        messages[index].toolCall?.status = .completed
-                        messages[index].toolCall?.result = "Done."
-                    }
-                    messages.append(Message(role: .agent, content: "Operation completed successfully."))
-                }
-            }
-            pendingApproval = nil
+        guard let msg = pendingApproval else { return }
+        if let index = messages.firstIndex(where: { $0.id == msg.id }) {
+            messages[index].toolCall?.status = .running
         }
+        showApproval = false
+
+        Task {
+            try? await service.resolveApproval(id: msg.id, decision: "approve")
+            if let index = messages.firstIndex(where: { $0.id == msg.id }) {
+                messages[index].toolCall?.status = .completed
+            }
+        }
+        pendingApproval = nil
     }
 
     func denyToolCall() {
-        if let msg = pendingApproval {
-            if let index = messages.firstIndex(where: { $0.id == msg.id }) {
-                messages[index].toolCall?.status = .failed
-                messages[index].toolCall?.result = "Denied by user"
-            }
-            showApproval = false
-            pendingApproval = nil
-
-            if service.isConnected && !isDemoMode {
-                Task {
-                    try? await service.resolveApproval(id: msg.id, decision: "reject")
-                }
-            }
-            messages.append(Message(role: .agent, content: "Understood. I won't execute that command."))
+        guard let msg = pendingApproval else { return }
+        if let index = messages.firstIndex(where: { $0.id == msg.id }) {
+            messages[index].toolCall?.status = .failed
+            messages[index].toolCall?.result = "Denied by user"
         }
+        showApproval = false
+        pendingApproval = nil
+
+        Task {
+            try? await service.resolveApproval(id: msg.id, decision: "reject")
+        }
+        messages.append(Message(role: .agent, content: "Understood. I won't execute that command."))
     }
 
     func abortChat() {
-        if service.isConnected && !isDemoMode {
-            service.abortChat(sessionKey: sessionKey)
-        }
+        service.abortChat(sessionKey: sessionKey)
         isStreaming = false
         if let idx = streamingMessageIndex, idx < messages.count {
             messages[idx].isStreaming = false
         }
         streamingMessageIndex = nil
-    }
-
-    private func checkForPendingApprovals() {
-        if let msg = messages.last(where: { $0.toolCall?.status == .awaitingApproval }) {
-            pendingApproval = msg
-            showApproval = true
-        }
-    }
-
-    // Demo mode only
-    private func simulateResponse(to text: String) {
-        Task {
-            try? await Task.sleep(for: .seconds(0.3))
-            let responses = MockService.shared.streamingResponses
-            let fullText = responses.randomElement() ?? responses[0]
-
-            messages.append(Message(role: .agent, content: "", isStreaming: true))
-            let streamIndex = messages.count - 1
-
-            for char in fullText {
-                try? await Task.sleep(for: .milliseconds(15))
-                if streamIndex < messages.count {
-                    messages[streamIndex].content.append(char)
-                }
-            }
-
-            if streamIndex < messages.count {
-                messages[streamIndex].isStreaming = false
-            }
-            isStreaming = false
-        }
     }
 }

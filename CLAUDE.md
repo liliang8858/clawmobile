@@ -24,8 +24,7 @@ No test target exists yet. No linter configured. No SPM/CocoaPods dependencies.
 SwiftUI + MVVM with `@Observable` (iOS 18+). All ViewModels are `@MainActor @Observable final class` and injected via `.environment()`.
 
 **Service layer:**
-- `OpenClawService` — real WebSocket client connecting to a local OpenClaw agent. Discovers agents by scanning localhost ports (18789, 3000, 8080) via `/health`, then connects via WebSocket using a JSON-RPC-style protocol (`type: req/res/event`).
-- `MockService` — hardcoded demo data, used when no agent is found.
+- `OpenClawService` — real WebSocket client connecting to a local OpenClaw agent. Discovers agents by scanning localhost ports (18789, 3000, 8080) via `/health`, then connects via WebSocket using a JSON-RPC-style protocol (`type: req/res/event`). Requires `Origin` header and `role`/`scopes` in connect params.
 - `L10n` — localization singleton (Chinese default, English alternative), stored in UserDefaults.
 
 **Data flow:** Views → ViewModels → OpenClawService (WebSocket) → OpenClaw backend. Chat uses streaming events (delta/final/error/aborted). Tool executions can require user approval via `exec.approval.requested` events.
