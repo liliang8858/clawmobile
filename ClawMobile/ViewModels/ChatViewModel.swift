@@ -29,7 +29,61 @@ final class ChatViewModel {
             messages = []
             return
         }
-        messages = []
+        Task {
+            do {
+                let rawMessages = try await service.chatHistory(sessionKey: sessionKey)
+                var loaded: [Message] = []
+                for raw in rawMessages {
+                    let rawRole = raw["role"] as? String ?? ""
+                    let role: Message.MessageRole
+                    switch rawRole {
+                    case "user": role = .user
+                    case "assistant": role = .agent
+                    case "tool", "toolResult": role = .tool
+                    default: role = .system
+                    }
+
+                    // Extract text from content blocks
+                    var text = ""
+                    if let contentBlocks = raw["content"] as? [[String: Any]] {
+                        for block in contentBlocks {
+                            let blockType = block["type"] as? String ?? ""
+                            if blockType == "text", let t = block["text"] as? String {
+                                text += t
+                            } else if blockType == "tool_use" {
+                                let toolName = block["name"] as? String ?? "tool"
+                                text += "[\(toolName)]"
+                            } else if blockType == "tool_result" {
+                                if let t = block["content"] as? String { text += t }
+                            }
+                        }
+                    } else if let contentStr = raw["content"] as? String {
+                        text = contentStr
+                    }
+
+                    // Skip empty assistant messages (usually just tool calls)
+                    if role == .agent && text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        continue
+                    }
+                    // Skip tool result messages (internal)
+                    if role == .tool { continue }
+
+                    var ts = Date()
+                    if let tsMs = raw["createdAtMs"] as? Double {
+                        ts = Date(timeIntervalSince1970: tsMs / 1000)
+                    } else if let tsStr = raw["createdAt"] as? String {
+                        let f = ISO8601DateFormatter()
+                        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        ts = f.date(from: tsStr) ?? Date()
+                    }
+
+                    loaded.append(Message(role: role, content: text, timestamp: ts))
+                }
+                self.messages = loaded
+            } catch {
+                self.messages = []
+            }
+        }
     }
 
     private func setupEventListeners() {

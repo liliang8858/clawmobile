@@ -119,9 +119,9 @@ final class TasksViewModel {
             tasks[index].lastRunAt = Date()
         }
 
+        service.runCron(id: task.id)
         Task {
-            try? await service.runCron(id: task.id)
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(3))
             loadTasks()
         }
     }

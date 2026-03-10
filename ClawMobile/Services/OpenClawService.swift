@@ -202,7 +202,7 @@ final class OpenClawService {
                     "version": "1.0.0", "platform": "ios"
                 ] as [String: Any],
                 "role": "operator",
-                "scopes": ["operator.read", "operator.write", "operator.approvals"],
+                "scopes": ["operator.read", "operator.write", "operator.approvals", "operator.admin"],
                 "auth": ["token": gatewayToken]
             ] as [String: Any]
         ]
@@ -460,6 +460,35 @@ final class OpenClawService {
                        userInfo: [NSLocalizedDescriptionKey: res.error?.message ?? "chat.send failed"])
     }
 
+    func chatHistory(sessionKey: String) async throws -> [[String: Any]] {
+        let res = try await send(method: "chat.history", params: ["sessionKey": sessionKey])
+        if res.ok == true {
+            return res.payload?.dictValue?["messages"] as? [[String: Any]] ?? []
+        }
+        return []
+    }
+
+    func memoryList() async throws -> [[String: Any]] {
+        // List all agent files
+        let res = try await send(method: "agents.files.list", params: ["agentId": "main"])
+        if res.ok == true {
+            return (res.payload?.dictValue?["files"] as? [[String: Any]])?.filter {
+                ($0["missing"] as? Bool) != true
+            } ?? []
+        }
+        return []
+    }
+
+    func getAgentFile(name: String) async throws -> String {
+        let res = try await send(method: "agents.files.get", params: ["agentId": "main", "name": name])
+        if res.ok == true {
+            if let file = res.payload?.dictValue?["file"] as? [String: Any] {
+                return file["content"] as? String ?? ""
+            }
+        }
+        return ""
+    }
+
     func abortChat(sessionKey: String) { sendNoWait(method: "chat.abort", params: ["sessionKey": sessionKey]) }
 
     func listCrons() async throws -> [[String: Any]] {
@@ -479,12 +508,8 @@ final class OpenClawService {
         }
     }
 
-    func runCron(id: String) async throws {
-        let res = try await send(method: "cron.run", params: ["id": id])
-        if res.ok != true {
-            throw NSError(domain: "OpenClaw", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: res.error?.message ?? "cron.run failed"])
-        }
+    func runCron(id: String) {
+        sendNoWait(method: "cron.run", params: ["id": id])
     }
 
     func removeCron(id: String) async throws {
